@@ -10,8 +10,10 @@ import (
 func main() {
     router := httprouter.New()
     router.POST("/user", CreateUser)
-    router.GET("/user", GetUser)
-    router.GET("/user/:id", GetUserId)
+    router.POST("/login", UserLogin)
+    router.GET("/user", AuthMiddleware(GetUser))
+    router.GET("/user/:id", AuthMiddleware(GetUserId))
+    router.PUT("/user/:id", AuthMiddleware(UpdateUser))
 
     log.Println("Server running on http://localhost:8080") 
     log.Fatal(http.ListenAndServe(":8080", router))
