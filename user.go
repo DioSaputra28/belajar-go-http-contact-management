@@ -11,9 +11,12 @@ import (
 )
 
 type Users struct {
-	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	UserId    int64   `json:"user_id"`
+	Name      string  `json:"name" validate:"required"`
+	Email     string  `json:"email" validate:"required,email"`
+	Password  string  `json:"password,omitempty" validate:"required"`
+	CreatedAt *string `json:"created_at,omitempty"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -83,6 +86,174 @@ func CreateUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(map[string]any{
 		"message": "User created successfully",
+		"user":    user,
+	})
+}
+
+func GetUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	db, err := Connect()
+	if err != nil {
+		fmt.Println("Error connect:", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Internal Server Error",
+		})
+		return
+	}
+	defer db.Close()
+
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		fmt.Println("Error count:", err)
+	} else {
+		fmt.Println("Jumlah data di database:", count)
+	}
+
+	data, err := db.Query("SELECT user_id, name, email, created_at, updated_at FROM users")
+	if err != nil {
+		fmt.Println("Error query:", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Internal Server Error",
+		})
+		return
+	}
+	defer data.Close()
+
+	users := []Users{}
+
+	for data.Next() {
+		var user Users
+		err := data.Scan(&user.UserId, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+		if err != nil {
+			fmt.Println("Error scan:", err)
+			continue
+		}
+		users = append(users, user)
+	}
+
+	if err := data.Err(); err != nil {
+		fmt.Println("Error rows:", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(map[string]any{
+		"message": "Success",
+		"data":    users,
+	})
+}
+
+func GetUserId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	db, err := Connect()
+	if err != nil {
+		fmt.Println("Error connect:", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Internal Server Error",
+		})
+		return
+	}
+	defer db.Close()
+
+	var user Users
+	err = db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE user_id = ?", ps.ByName("id")).Scan(&user.UserId, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		fmt.Println("Error query:", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(404)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "User not found",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(map[string]any{
+		"message": "Success",
+		"data":    user,
+	})
+}
+
+func UpdateUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if r.Body == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Input tidak valid.",
+		})
+		return
+	}
+
+	var user Users
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Input tidak valid.",
+		})
+		return
+	}
+
+	validate := validator.New()
+
+	if err := validate.Struct(user); err != nil {
+		errors := err.(validator.ValidationErrors)
+		errMsgs := []string{}
+		for _, e := range errors {
+			errMsgs = append(errMsgs, fmt.Sprintf("%s is %s", e.Field(), e.ActualTag()))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(map[string]any{
+			"errors": errMsgs,
+		})
+		return
+	}
+
+	db, err := Connect()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Internal Server Error",
+		})
+		return
+	}
+	defer db.Close()
+
+	var userId Users
+	err = db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE user_id = ?", ps.ByName("id")).Scan(&userId.UserId, &userId.Name, &userId.Email, &userId.CreatedAt, &userId.UpdatedAt)
+	if err != nil {
+		fmt.Println("Error query:", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(404)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "User not found",
+		})
+		return
+	}
+
+	_, err = db.Exec("UPDATE users SET name = ?, email = ? WHERE user_id = ?", user.Name, user.Email, ps.ByName("id"))
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Internal Server Error",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(map[string]any{
+		"message": "User updated successfully",
 		"user":    user,
 	})
 }
