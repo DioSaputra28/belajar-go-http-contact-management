@@ -73,8 +73,20 @@ func CreateUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	sha1.Write([]byte(data.Password))
 	data.Password = fmt.Sprintf("%x", sha1.Sum(nil))
 
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", data.Email).Scan(&count)
+	if count  > 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": "Email already exists",
+		})
+		return
+	}
+
 	_, err = db.Exec("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", data.Name, data.Email, data.Password)
 	if err != nil {
+		fmt.Println("Error: ", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(500)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -189,14 +201,6 @@ func GetUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	defer db.Close()
-
-	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-	if err != nil {
-		fmt.Println("Error count:", err)
-	} else {
-		fmt.Println("Jumlah data di database:", count)
-	}
 
 	data, err := db.Query("SELECT user_id, name, email, created_at, updated_at FROM users")
 	if err != nil {

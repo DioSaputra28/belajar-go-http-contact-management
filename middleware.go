@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -31,9 +32,9 @@ func AuthMiddleware(next httprouter.Handle) httprouter.Handle {
 		}
 		defer db.Close()
 
-		var userCount int
-		err = db.QueryRow("SELECT COUNT(*) FROM users WHERE token = ?", token).Scan(&userCount)
-		if err != nil || userCount == 0 {
+		var user Users
+		err = db.QueryRow("SELECT user_id, name, email, created_at FROM users WHERE token = ?", token).Scan(&user.UserId, &user.Name, &user.Email, &user.CreatedAt)
+		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(401)
 			json.NewEncoder(w).Encode(map[string]any{
@@ -41,6 +42,8 @@ func AuthMiddleware(next httprouter.Handle) httprouter.Handle {
 			})
 			return
 		}
+		ctx := context.WithValue(r.Context(), "user", user)
+		r = r.WithContext(ctx)
 		next(w, r, p)
 	}
 }
