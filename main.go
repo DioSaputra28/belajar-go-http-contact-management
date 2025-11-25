@@ -4,13 +4,16 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func main() {
+	_ = godotenv.Load()
+
 	router := httprouter.New()
-    
+
 	router.POST("/user", CreateUser)
 	router.POST("/login", UserLogin)
 	router.GET("/user", AuthMiddleware(GetUser))
@@ -39,6 +42,8 @@ func main() {
 		).ServeHTTP(w, r)
 	})
 
-	log.Println("Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	port := getEnv("APP_PORT", "8080")
+
+	log.Printf("Server running on http://localhost:%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }

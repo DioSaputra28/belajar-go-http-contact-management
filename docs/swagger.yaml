@@ -19,7 +19,6 @@ tags:
     description: Address management endpoints
 
 paths:
-  # ==================== AUTH ====================
   /login:
     post:
       summary: User login
@@ -612,7 +611,6 @@ components:
                 example: "Internal Server Error"
 
   schemas:
-    # ==================== REQUEST SCHEMAS ====================
     LoginRequest:
       type: object
       required:
@@ -756,7 +754,6 @@ components:
           type: string
           example: "12345"
 
-    # ==================== RESPONSE SCHEMAS ====================
     User:
       type: object
       properties:
