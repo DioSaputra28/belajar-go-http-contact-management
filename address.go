@@ -57,17 +57,7 @@ func CreateAddress(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Internal server error",
-		})
-		return
-	}
-
-	defer db.Close()
+	db := GetDB()
 
 	var count int
 	_ = db.QueryRow("SELECT COUNT(*) FROM contacts WHERE contact_id = ?", address.ContactId).Scan(&count)
@@ -109,17 +99,7 @@ func CreateAddress(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 }
 
 func GetAddresses(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Internal server error",
-		})
-		return
-	}
-
-	defer db.Close()
+	db := GetDB()
 
 	var count int
 	_ = db.QueryRow("SELECT COUNT(*) FROM contacts WHERE contact_id = ?", ps.ByName("contactId")).Scan(&count)
@@ -169,17 +149,7 @@ func GetAddresses(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 }
 
 func GetAddressId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Internal server error",
-		})
-		return
-	}
-
-	defer db.Close()
+	db := GetDB()
 
 	var count int
 	_ = db.QueryRow("SELECT COUNT(*) FROM contacts WHERE contact_id = ?", ps.ByName("contactId")).Scan(&count)
@@ -193,7 +163,7 @@ func GetAddressId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	}
 
 	var address Addresses
-	err = db.QueryRow("SELECT * FROM addresses WHERE address_id = ?", ps.ByName("addressId")).Scan(&address.AddressId, &address.Street, &address.City, &address.Province, &address.Country, &address.PostalCode, &address.ContactId, &address.CreatedAt, &address.UpdatedAt)
+	err := db.QueryRow("SELECT * FROM addresses WHERE address_id = ?", ps.ByName("addressId")).Scan(&address.AddressId, &address.Street, &address.City, &address.Province, &address.Country, &address.PostalCode, &address.ContactId, &address.CreatedAt, &address.UpdatedAt)
 	if err != nil {
 		fmt.Println("Error disini", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -214,7 +184,7 @@ func GetAddressId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 func UpdateAddress(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Println("contactId:", ps.ByName("contactId"))
-    fmt.Println("addressId:", ps.ByName("addressId"))
+	fmt.Println("addressId:", ps.ByName("addressId"))
 
 	if r.Body == nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -251,17 +221,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Internal server error",
-		})
-		return
-	}
-
-	defer db.Close()
+	db := GetDB()
 
 	var count int
 	_ = db.QueryRow("SELECT COUNT(*) FROM contacts WHERE contact_id = ?", ps.ByName("contactId")).Scan(&count)
@@ -313,17 +273,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 }
 
 func DeleteAddress(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Internal server error",
-		})
-		return
-	}
-
-	defer db.Close()
+	db := GetDB()
 
 	var count int
 	_ = db.QueryRow("SELECT COUNT(*) FROM contacts WHERE contact_id = ?", ps.ByName("contactId")).Scan(&count)

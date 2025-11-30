@@ -12,6 +12,14 @@ import (
 func main() {
 	_ = godotenv.Load()
 
+	// Initialize database connection pool
+	if err := InitDB(); err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer GetDB().Close()
+
+	log.Println("Starting Contact Management API...")
+
 	router := httprouter.New()
 
 	router.POST("/user", CreateUser)

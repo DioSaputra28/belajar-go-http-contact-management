@@ -57,16 +57,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	data := &user
 	sha1 := sha1.New()
@@ -74,8 +65,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	data.Password = fmt.Sprintf("%x", sha1.Sum(nil))
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", data.Email).Scan(&count)
-	if count  > 0 {
+	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", data.Email).Scan(&count)
+	if count > 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -124,7 +115,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	validate := validator.New()
-	
+
 	if err := validate.StructPartial(user, "Email", "Password"); err != nil {
 		errors := err.(validator.ValidationErrors)
 		errMsgs := []string{}
@@ -139,23 +130,14 @@ func UserLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	var userData Users
 	sha1 := sha1.New()
 	sha1.Write([]byte(user.Password))
 	hashedPassword := fmt.Sprintf("%x", sha1.Sum(nil))
 
-	err = db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE email = ? AND password = ?", user.Email, hashedPassword).Scan(&userData.UserId, &userData.Name, &userData.Email, &userData.CreatedAt, &userData.UpdatedAt)
+	err := db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE email = ? AND password = ?", user.Email, hashedPassword).Scan(&userData.UserId, &userData.Name, &userData.Email, &userData.CreatedAt, &userData.UpdatedAt)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(401)
@@ -177,9 +159,9 @@ func UserLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	userDataMap := map[string]any{
-		"user_id":    userData.UserId,
-		"email":      userData.Email,
-		"token":      token,
+		"user_id": userData.UserId,
+		"email":   userData.Email,
+		"token":   token,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -190,17 +172,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	})
 }
 func GetUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		fmt.Println("Error connect:", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	data, err := db.Query("SELECT user_id, name, email, created_at, updated_at FROM users")
 	if err != nil {
@@ -239,20 +211,10 @@ func GetUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func GetUserId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		fmt.Println("Error connect:", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	var user Users
-	err = db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE user_id = ?", ps.ByName("id")).Scan(&user.UserId, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+	err := db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE user_id = ?", ps.ByName("id")).Scan(&user.UserId, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		fmt.Println("Error query:", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -308,19 +270,10 @@ func UpdateUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	var userId Users
-	err = db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE user_id = ?", ps.ByName("id")).Scan(&userId.UserId, &userId.Name, &userId.Email, &userId.CreatedAt, &userId.UpdatedAt)
+	err := db.QueryRow("SELECT user_id, name, email, created_at, updated_at FROM users WHERE user_id = ?", ps.ByName("id")).Scan(&userId.UserId, &userId.Name, &userId.Email, &userId.CreatedAt, &userId.UpdatedAt)
 	if err != nil {
 		fmt.Println("Error query:", err)
 		w.Header().Set("Content-Type", "application/json")

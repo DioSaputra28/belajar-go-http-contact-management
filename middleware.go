@@ -21,19 +21,10 @@ func AuthMiddleware(next httprouter.Handle) httprouter.Handle {
 			return
 		}
 
-		db, err := Connect()
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(500)
-			json.NewEncoder(w).Encode(map[string]any{
-				"message": "Internal Server Error",
-			})
-			return
-		}
-		defer db.Close()
+		db := GetDB()
 
 		var user Users
-		err = db.QueryRow("SELECT user_id, name, email, created_at FROM users WHERE token = ?", token).Scan(&user.UserId, &user.Name, &user.Email, &user.CreatedAt)
+		err := db.QueryRow("SELECT user_id, name, email, created_at FROM users WHERE token = ?", token).Scan(&user.UserId, &user.Name, &user.Email, &user.CreatedAt)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(401)

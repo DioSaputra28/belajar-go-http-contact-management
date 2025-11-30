@@ -57,20 +57,11 @@ func CreateContact(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	ctxUser := r.Context().Value("user").(Users)
 
-	_, err = db.Exec("INSERT INTO contacts (first_name, last_name, email, phone, user_id) VALUES (?, ?, ?, ?, ?)", contact.FirstName, contact.LastName, contact.Email, contact.Phone, ctxUser.UserId)
+	_, err := db.Exec("INSERT INTO contacts (first_name, last_name, email, phone, user_id) VALUES (?, ?, ?, ?, ?)", contact.FirstName, contact.LastName, contact.Email, contact.Phone, ctxUser.UserId)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(500)
@@ -92,22 +83,13 @@ func CreateContact(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(map[string]any{
 		"message": "Contact created successfully",
-		"data": data,
+		"data":    data,
 	})
 
 }
 
 func GetContacts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	ctxUser := r.Context().Value("user").(Users)
 
@@ -145,22 +127,13 @@ func GetContacts(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func GetContactId(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	ctxUser := r.Context().Value("user").(Users)
 
 	var contact Contacts
 
-	err = db.QueryRow("SELECT * FROM contacts WHERE contact_id = ? AND user_id = ?", ps.ByName("id"), ctxUser.UserId).Scan(&contact.ContactId, &contact.FirstName, &contact.LastName, &contact.Email, &contact.Phone, &contact.UserId, &contact.CreatedAt, &contact.UpdatedAt)
+	err := db.QueryRow("SELECT * FROM contacts WHERE contact_id = ? AND user_id = ?", ps.ByName("id"), ctxUser.UserId).Scan(&contact.ContactId, &contact.FirstName, &contact.LastName, &contact.Email, &contact.Phone, &contact.UserId, &contact.CreatedAt, &contact.UpdatedAt)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
@@ -215,19 +188,9 @@ func UpdateContact(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	ctxUser := r.Context().Value("user").(Users)
-
 
 	rows, err := db.Exec("UPDATE contacts SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE contact_id = ? AND user_id = ?", contact.FirstName, contact.LastName, contact.Email, contact.Phone, ps.ByName("id"), ctxUser.UserId)
 	if err != nil {
@@ -239,7 +202,7 @@ func UpdateContact(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
-	rowsAffected, _ :=  rows.RowsAffected()
+	rowsAffected, _ := rows.RowsAffected()
 	if rowsAffected == 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
@@ -263,16 +226,7 @@ func UpdateContact(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 }
 
 func DeleteContact(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	db, err := Connect()
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "Internal Server Error",
-		})
-		return
-	}
-	defer db.Close()
+	db := GetDB()
 
 	ctxUser := r.Context().Value("user").(Users)
 
@@ -286,7 +240,7 @@ func DeleteContact(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
-	rowsAffected, _ :=  rows.RowsAffected()
+	rowsAffected, _ := rows.RowsAffected()
 	if rowsAffected == 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
